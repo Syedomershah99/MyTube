@@ -1,4 +1,4 @@
-"""Write the static site's data: site/videos.json (compact) for the videos recommended by 2+ people.
+"""Write the static site's data: docs/videos.json (compact) for the videos recommended by 2+ people.
 
 Record: [video_id, title, channel, topic index, people, first year, last year, quote, quote comment id,
 quote author, [other comment ids]]; topics are listed once, most videos first.
@@ -13,7 +13,7 @@ import duckdb
 
 from classify import TOPICS
 
-SITE = pathlib.Path("site")
+SITE = pathlib.Path("docs")
 # The few labels Haiku wrote outside the fixed list, mapped to the nearest listed topic.
 NEAREST = {
     "Earth sciences": "Nature", "Game engines": "Games and game design", "Food and cooking": "Cooking and food",
