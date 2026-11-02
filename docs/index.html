@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MyTube</title>
 <meta name="description" content="YouTube videos that Hacker News commenters recommend, 2007 to 2026.">
+<meta name="theme-color" content="#0f0f0f">
 <style>
-  :root { --bg:#fff; --text:#0f0f0f; --muted:#606060; --chip:#f2f2f2; --chip-hover:#e5e5e5; --chip-on:#0f0f0f; --chip-on-text:#fff;
-          --line:#e5e5e5; --panel:#f2f2f2; --accent:#ff6600; --scrim:rgba(0,0,0,.5); }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme=light]) { --bg:#0f0f0f; --text:#f1f1f1; --muted:#aaa; --chip:#272727; --chip-hover:#3f3f3f;
-          --chip-on:#f1f1f1; --chip-on-text:#0f0f0f; --line:#303030; --panel:#272727; } }
-  :root[data-theme=dark] { --bg:#0f0f0f; --text:#f1f1f1; --muted:#aaa; --chip:#272727; --chip-hover:#3f3f3f; --chip-on:#f1f1f1; --chip-on-text:#0f0f0f; --line:#303030; --panel:#272727; }
+  /* Black with purple by default; the toggle switches to a light theme. */
+  :root { --bg:#0f0f0f; --text:#f1f1f1; --muted:#aaa; --chip:#272727; --chip-hover:#3f3f3f; --chip-on:#7c3aed; --chip-on-text:#fff;
+          --line:#303030; --panel:#272727; --accent:#7c3aed; --accent-soft:rgba(139,92,246,.22); --link:#a78bfa; --scrim:rgba(0,0,0,.6); }
+  :root[data-theme=light] { --bg:#fff; --text:#0f0f0f; --muted:#606060; --chip:#f2f2f2; --chip-hover:#e5e5e5; --chip-on:#7c3aed; --chip-on-text:#fff;
+          --line:#e5e5e5; --panel:#f2f2f2; --accent-soft:rgba(124,58,237,.12); --link:#6d28d9; --scrim:rgba(0,0,0,.5); }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 Roboto, "Segoe UI", -apple-system, Arial, sans-serif; }
   a { color:inherit; text-decoration:none; }
@@ -25,13 +26,15 @@
   .mark { width:28px; height:28px; border-radius:7px; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:16px; font-weight:800; }
   .search { flex:0 1 640px; display:flex; }
   .search input { flex:1; min-width:0; height:40px; padding:0 16px; border:1px solid var(--line); border-right:0; border-radius:40px 0 0 40px; background:var(--bg); color:var(--text); font:inherit; font-size:16px; outline:none; }
-  .search input:focus { border-color:#1c62b9; }
+  .search input:focus { border-color:var(--accent); }
   .search button { width:64px; height:40px; border:1px solid var(--line); border-radius:0 40px 40px 0; background:var(--chip); cursor:pointer; display:grid; place-items:center; }
   /* sidebar */
   .side { position:fixed; top:56px; bottom:0; left:0; width:240px; overflow-y:auto; padding:12px; background:var(--bg); z-index:15; scrollbar-width:thin; }
   .side a, .side button.item { display:flex; align-items:center; gap:20px; width:100%; height:40px; padding:0 12px; border:0; border-radius:10px; background:none; cursor:pointer; text-align:left; font-size:14px; }
   .side a:hover, .side .item:hover { background:var(--chip); }
-  .side .on { background:var(--chip); font-weight:500; }
+  .side .on { background:var(--accent-soft); font-weight:500; }
+  .side .on svg { fill:var(--link); }
+  .side .small a, .comment a:hover, .desc a { color:var(--link); }
   .side hr { border:0; border-top:1px solid var(--line); margin:12px 0; }
   .side h3 { margin:6px 12px; font-size:16px; font-weight:600; }
   .side .count { margin-left:auto; color:var(--muted); font-size:12px; }
