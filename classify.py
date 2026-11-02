@@ -128,5 +128,34 @@ def collect() -> None:
     print(f"{pending} batches still running", flush=True)
 
 
+def labelled() -> set[int]:
+    ids = set()
+    for f in STATE.glob("results-*.jsonl"):
+        for line in f.open():
+            text = json.loads(line).get("text", "")
+            try:
+                ids.update(int(it["id"]) for it in json.loads(text[text.index("[") : text.rindex("]") + 1]))
+            except (ValueError, KeyError, TypeError):
+                pass
+    return ids
+
+
+def new() -> None:
+    """Label comments that have no label yet (a refresh) with direct calls: few, so speed beats batch price."""
+    done = labelled()
+    todo = [c for c in comments() if c["id"] not in done]
+    parts = [todo[i : i + PER_REQUEST] for i in range(0, len(todo), PER_REQUEST)]
+    print(f"{len(todo)} unlabelled comments, {len(parts)} requests", flush=True)
+    cl = client()
+    out = STATE / f"results-direct-{len(list(STATE.glob('results-direct-*.jsonl')))}.jsonl"
+    with out.open("w") as fh:
+        for n, chunk in enumerate(parts):
+            m = cl.messages.create(**params(chunk))
+            fh.write(json.dumps({"custom_id": f"d{n:05d}", "type": "succeeded",
+                                 "text": "".join(b.text for b in m.content if b.type == "text"),
+                                 "usage": m.usage.model_dump()}) + "\n")
+    print(f"wrote {out}", flush=True)
+
+
 if __name__ == "__main__":
-    {"pilot": pilot, "submit": submit, "collect": collect}[sys.argv[1]]()
+    {"pilot": pilot, "submit": submit, "collect": collect, "new": new}[sys.argv[1]]()
