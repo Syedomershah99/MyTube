@@ -3,3 +3,4 @@ data/
 *.err
 __pycache__/
 .venv/
+posts.md
