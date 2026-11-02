@@ -1,4 +1,4 @@
-# HN Video Picks
+# MyTube
 
 11,044 YouTube videos that at least two different Hacker News commenters recommended, 2007 to 2026, sorted into 43 topics. A static site: search, topic filters, "for you" ordering and watched marks, all kept in your browser.
 
