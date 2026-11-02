@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HN Video Picks</title>
+<meta name="description" content="YouTube videos that Hacker News commenters recommend, 2007 to 2026.">
+<style>
+  :root { --bg:#f6f6ef; --card:#fff; --text:#1a1a1a; --muted:#666; --line:#e2e2d8; --accent:#ff6600; --chip:#ecebe4; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#141414; --card:#1e1e1e; --text:#eaeaea; --muted:#a0a0a0; --line:#2c2c2c; --accent:#ff7a1a; --chip:#2a2a2a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding:20px 16px 8px; max-width:1280px; margin:0 auto; }
+  h1 { margin:0; font-size:22px; } h1 span { color:var(--accent); }
+  .sub { color:var(--muted); margin:4px 0 0; }
+  .bar { position:sticky; top:0; z-index:2; background:var(--bg); border-bottom:1px solid var(--line); }
+  .bar-in { max-width:1280px; margin:0 auto; padding:10px 16px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  input[type=search], select { font:inherit; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--text); }
+  input[type=search] { flex:1 1 220px; }
+  label.t { color:var(--muted); font-size:13px; display:flex; gap:5px; align-items:center; }
+  .chips { max-width:1280px; margin:0 auto; padding:8px 16px 0; display:flex; gap:6px; overflow-x:auto; scrollbar-width:thin; }
+  .chip { flex:none; border:0; background:var(--chip); color:var(--text); padding:5px 10px; border-radius:999px; font:inherit; font-size:13px; cursor:pointer; }
+  .chip[aria-pressed=true] { background:var(--accent); color:#fff; }
+  main { max-width:1280px; margin:0 auto; padding:14px 16px 40px; }
+  .count { color:var(--muted); font-size:13px; margin-bottom:10px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; display:flex; flex-direction:column; }
+  .card.seen { opacity:.55; }
+  .thumb { position:relative; display:block; aspect-ratio:16/9; background:#000; }
+  .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .people { position:absolute; right:6px; bottom:6px; background:rgba(0,0,0,.75); color:#fff; font-size:12px; padding:2px 7px; border-radius:6px; }
+  .body { padding:10px 12px 12px; display:flex; flex-direction:column; gap:6px; flex:1; }
+  .title { font-weight:600; color:var(--text); text-decoration:none; overflow-wrap:anywhere; }
+  .title:hover { text-decoration:underline; }
+  .meta { color:var(--muted); font-size:12.5px; }
+  blockquote { margin:0; font-size:13px; color:var(--text); border-left:3px solid var(--accent); padding-left:8px; overflow-wrap:anywhere; }
+  .foot { display:flex; justify-content:space-between; align-items:center; margin-top:auto; font-size:12.5px; }
+  .foot a { color:var(--muted); }
+  .seenbtn { border:0; background:none; color:var(--muted); cursor:pointer; font:inherit; font-size:12.5px; padding:0; }
+  footer { max-width:1280px; margin:0 auto; padding:20px 16px 40px; color:var(--muted); font-size:13px; border-top:1px solid var(--line); }
+  footer a { color:var(--muted); }
+  #more { height:1px; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>HN</span> Video Picks</h1>
+  <p class="sub" id="sub">YouTube videos that Hacker News commenters recommend.</p>
+</header>
+<div class="bar"><div class="bar-in">
+  <input type="search" id="q" placeholder="Search titles, channels and comments" aria-label="Search">
+  <select id="sort" aria-label="Sort">
+    <option value="people">Most recommended</option>
+    <option value="foryou">For you</option>
+    <option value="new">Recently recommended</option>
+    <option value="old">First recommended long ago</option>
+    <option value="shuffle">Shuffle</option>
+  </select>
+  <label class="t"><input type="checkbox" id="hideSeen"> Hide watched</label>
+</div>
+<div class="chips" id="chips" role="toolbar" aria-label="Topics"></div>
+</div>
+<main>
+  <div class="count" id="count">Loading…</div>
+  <div class="grid" id="grid"></div>
+  <div id="more"></div>
+</main>
+<footer>
+  Each video was recommended by at least two different people in Hacker News comments. Comments come from the
+  <a href="https://huggingface.co/datasets/open-index/hacker-news">open-index/hacker-news</a> dataset (ODC-BY),
+  sorted by Claude Haiku into recommendations and topics; titles from YouTube. Inspired by Andrej Karpathy's
+  <a href="https://karpathy.bearblog.dev/hacker-tube/">HackerTube</a>. Not affiliated with Y Combinator, Hacker News or YouTube.
+  "For you" and "watched" stay in your browser; nothing is sent anywhere.
+  <a href="videos.json" download>Download the data</a>.
+</footer>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+  let data, topics = [], topic = -1, list = [], shown = 0;
+  const seen = new Set(store.get("seen", []));
+  const taste = store.get("taste", {});   // topic index -> clicks
+  const PAGE = 60;
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+  function chips() {
+    const all = `<button class="chip" data-t="-1" aria-pressed="${topic === -1}">All ${data.videos.length.toLocaleString()}</button>`;
+    $("chips").innerHTML = all + topics.map((t, i) =>
+      `<button class="chip" data-t="${i}" aria-pressed="${topic === i}">${esc(t)} ${data.counts[i].toLocaleString()}</button>`).join("");
+  }
+
+  function order(v) {
+    const s = $("sort").value;
+    if (s === "people") return v;  // the file is sorted by people, then most recent
+    if (s === "new") return v.slice().sort((a, b) => b[6] - a[6] || b[4] - a[4]);
+    if (s === "old") return v.slice().sort((a, b) => a[5] - b[5] || b[4] - a[4]);
+    if (s === "foryou") {
+      const total = Object.values(taste).reduce((x, y) => x + y, 0) || 1;
+      const score = (r) => Math.log2(1 + r[4]) * (0.3 + (taste[r[3]] || 0) / total) + Math.random() * 0.4;
+      return v.map((r) => [score(r), r]).sort((a, b) => b[0] - a[0]).map((x) => x[1]);
+    }
+    const a = v.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+
+  function apply() {
+    const q = $("q").value.trim().toLowerCase();
+    const hide = $("hideSeen").checked;
+    let v = data.videos.filter((r) => (topic < 0 || r[3] === topic) && !(hide && seen.has(r[0])) &&
+      (!q || r[1].toLowerCase().includes(q) || r[2].toLowerCase().includes(q) || r[7].toLowerCase().includes(q)));
+    list = order(v); shown = 0; $("grid").innerHTML = "";
+    $("count").textContent = `${list.length.toLocaleString()} videos`;
+    more();
+  }
+
+  function card(r) {
+    const [id, title, channel, t, people, first, last, quote, cid, by, others] = r;
+    const yt = `https://www.youtube.com/watch?v=${id}`;
+    const years = first === last ? `${first}` : `${first}–${last}`;
+    const links = [cid, ...others].map((c, i) => `<a href="https://news.ycombinator.com/item?id=${c}" target="_blank" rel="noopener">${i ? i + 1 : "on HN"}</a>`).join(" · ");
+    return `<article class="card${seen.has(id) ? " seen" : ""}" data-id="${id}" data-t="${t}">
+      <a class="thumb" href="${yt}" target="_blank" rel="noopener"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${id}/mqdefault.jpg"><span class="people">${people} people</span></a>
+      <div class="body">
+        <a class="title" href="${yt}" target="_blank" rel="noopener">${esc(title)}</a>
+        <div class="meta">${esc(channel)} · ${esc(topics[t])} · recommended ${years}</div>
+        <blockquote>${esc(quote)} <span class="meta">— ${esc(by)}</span></blockquote>
+        <div class="foot"><span>${links}</span><button class="seenbtn">${seen.has(id) ? "Unmark watched" : "Mark watched"}</button></div>
+      </div></article>`;
+  }
+
+  function more() {
+    if (shown >= list.length) return;
+    $("grid").insertAdjacentHTML("beforeend", list.slice(shown, shown + PAGE).map(card).join(""));
+    shown += PAGE;
+  }
+
+  $("grid").addEventListener("click", (e) => {
+    const c = e.target.closest(".card"); if (!c) return;
+    if (e.target.closest(".seenbtn")) {
+      const id = c.dataset.id;
+      seen.has(id) ? seen.delete(id) : seen.add(id);
+      store.set("seen", [...seen]);
+      c.classList.toggle("seen"); e.target.textContent = seen.has(id) ? "Unmark watched" : "Mark watched";
+      return;
+    }
+    if (e.target.closest("a.thumb, a.title")) {
+      const t = c.dataset.t; taste[t] = (taste[t] || 0) + 1; store.set("taste", taste);
+      seen.add(c.dataset.id); store.set("seen", [...seen]);
+    }
+  });
+  $("chips").addEventListener("click", (e) => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    topic = Number(b.dataset.t); chips(); apply();
+  });
+  let timer; $("q").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(apply, 150); });
+  $("sort").addEventListener("change", apply);
+  $("hideSeen").addEventListener("change", apply);
+  new IntersectionObserver((es) => { if (es[0].isIntersecting) more(); }, { rootMargin: "800px" }).observe($("more"));
+
+  fetch("videos.json").then((r) => r.json()).then((d) => {
+    data = d; topics = d.topics;
+    const ys = d.videos.flatMap((r) => [r[5], r[6]]);
+    $("sub").textContent = `${d.videos.length.toLocaleString()} YouTube videos recommended by at least two Hacker News commenters, ${Math.min(...ys)}–${Math.max(...ys)}.`;
+    chips(); apply();
+  }).catch(() => { $("count").textContent = "Could not load the video list."; });
+})();
+</script>
+</body>
+</html>
